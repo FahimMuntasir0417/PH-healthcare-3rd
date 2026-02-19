@@ -5,10 +5,17 @@ model User {
   email         String
   emailVerified Boolean   @default(false)
   image         String?
+  role          Role      @default(PATIENT)
+  status        UserStatus @default(ACTIVE)
+  needPasswordChange Boolean @default(false)
+  isDeleted     Boolean   @default(false)
+  deletedAt     DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  doctor        Doctor?
+  patient       Patient?
 
   @@unique([email])
   @@map("user")
