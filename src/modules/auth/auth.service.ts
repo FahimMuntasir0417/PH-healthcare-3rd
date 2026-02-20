@@ -1,6 +1,7 @@
 import { UserStatus } from "../../generated/prisma/enums";
 import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
+import { tokenUtils } from "../../utils/token";
 import {
   IloginPaitentpayload,
   IregisterPaitentpayload,
@@ -9,36 +10,46 @@ import {
 const registerPatient = async (payload: IregisterPaitentpayload) => {
   const { name, email, password } = payload;
 
+  // 1) Create auth user
   const data = await auth.api.signUpEmail({
     body: { name, email, password },
   });
 
-  if (!data.user) {
-    throw new Error("Failed to register patient");
-  }
+  if (!data.user) throw new Error("Failed to register patient");
 
   try {
-    const patient = await prisma.$transaction(async (tx) => {
-      return tx.patient.create({
-        data: {
-          userId: data.user.id,
-          name: payload.name,
-          email: payload.email,
-        },
-      });
+    // 2) Create patient row (no need for $transaction if it's a single create)
+    const createdPatient = await prisma.patient.create({
+      data: {
+        userId: data.user.id,
+        name,
+        email,
+      },
     });
+
+    // 3) Tokens
+    const tokenPayload = {
+      userId: data.user.id,
+      role: data.user.role,
+      name: data.user.name,
+      email: data.user.email,
+      status: data.user.status,
+      isDeleted: data.user.isDeleted,
+      emailVerified: data.user.emailVerified,
+    };
+
+    const accessToken = tokenUtils.getAccessToken(tokenPayload);
+    const refreshToken = tokenUtils.getRefreshToken(tokenPayload);
 
     return {
       ...data,
-      patient,
+      accessToken,
+      refreshToken,
+      createdPatient,
     };
-  } catch (error) {
-    // rollback created auth user if patient creation fails
-    await prisma.user.delete({
-      where: { id: data.user.id },
-    });
-
-    throw new Error("Failed to register patient in database");
+  } catch (err) {
+    await prisma.user.delete({ where: { id: data.user.id } }); // Rollback auth user if patient creation fails
+    throw err;
   }
 };
 
@@ -54,8 +65,23 @@ const loginPatient = async (payload: IloginPaitentpayload) => {
   if (data.user.isDeleted || data.user.status === UserStatus.DELETED) {
     throw new Error("User is deleted");
   }
+
+  const tokenPayload = {
+    userId: data.user.id,
+    role: data.user.role,
+    name: data.user.name,
+    email: data.user.email,
+    status: data.user.status,
+    isDeleted: data.user.isDeleted,
+    emailVerified: data.user.emailVerified,
+  };
+  const accessToken = tokenUtils.getAccessToken(tokenPayload);
+  const refreshToken = tokenUtils.getRefreshToken(tokenPayload);
+
   return {
     ...data,
+    accessToken,
+    refreshToken,
   };
 };
 

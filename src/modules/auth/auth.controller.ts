@@ -4,7 +4,8 @@ import { sendResponse } from "../../shared/sendResponse";
 import { AuthService } from "./auth.service";
 
 const registerPatient = catchAsync(async (req, res) => {
-  const result = await AuthService.registerPatient(req.body);
+  const payload = req.body;
+  const result = await AuthService.registerPatient(payload);
 
   sendResponse(res, {
     httpStatusCode: status.CREATED,
