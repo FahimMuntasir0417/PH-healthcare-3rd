@@ -19,8 +19,6 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Env
-.env
-.env.*
 !.env.example
 
 # Prisma (local SQLite)
@@ -43,3 +41,4 @@ prisma/*.db-shm
 # OS
 .DS_Store
 Thumbs.db
+config.bat
