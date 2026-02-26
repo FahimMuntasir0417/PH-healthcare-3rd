@@ -10,3 +10,8 @@ export interface IloginPaitentpayload {
   email: string;
   password: string;
 }
+
+export interface IchangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
