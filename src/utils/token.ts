@@ -5,6 +5,17 @@ import { CookieUtils } from "./cookie";
 import { jwtUtils } from "./jwt";
 import { envVars } from "../config";
 
+const isProduction = envVars.NODE_ENV === "production";
+const oneDayMs = 24 * 60 * 60 * 1000;
+const sevenDaysMs = 7 * oneDayMs;
+
+const getBaseCookieOptions = () => ({
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
+  path: "/",
+} as const);
+
 //Creating access token
 const getAccessToken = (payload: JwtPayload) => {
   const accessToken = jwtUtils.createToken(
@@ -27,34 +38,25 @@ const getRefreshToken = (payload: JwtPayload) => {
 
 const setAccessTokenCookie = (res: Response, token: string) => {
   CookieUtils.setCookie(res, "accessToken", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    path: "/",
-    //1 day
-    maxAge: 60 * 60 * 60 * 24,
+    ...getBaseCookieOptions(),
+    // 1 day
+    maxAge: oneDayMs,
   });
 };
 
 const setRefreshTokenCookie = (res: Response, token: string) => {
   CookieUtils.setCookie(res, "refreshToken", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    path: "/",
-    //7d
-    maxAge: 60 * 60 * 60 * 24 * 7,
+    ...getBaseCookieOptions(),
+    // 7 days
+    maxAge: sevenDaysMs,
   });
 };
 
 const setBetterAuthSessionCookie = (res: Response, token: string) => {
   CookieUtils.setCookie(res, "better-auth.session_token", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    path: "/",
-    //1 day
-    maxAge: 60 * 60 * 60 * 24,
+    ...getBaseCookieOptions(),
+    // 1 day
+    maxAge: oneDayMs,
   });
 };
 
@@ -64,4 +66,5 @@ export const tokenUtils = {
   setAccessTokenCookie,
   setRefreshTokenCookie,
   setBetterAuthSessionCookie,
+  getBaseCookieOptions,
 };
